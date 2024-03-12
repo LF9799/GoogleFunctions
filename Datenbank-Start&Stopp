@@ -1,0 +1,72 @@
+## Datenbank-Start
+
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
+import json  
+
+def start_sql_instance(request):
+    # API URL konfigurieren;
+    project_id = "massive-cider-414718"  
+    instance_id = "pjs-gebrauchtwagen2"  
+    url = f"https://sqladmin.googleapis.com/v1/projects/{project_id}/instances/{instance_id}"
+
+    # JSON senden
+    data = {
+        "settings": {
+            "activationPolicy": "ALWAYS"
+        }
+    }
+
+    credentials, project = google.auth.default()
+    authed_session = AuthorizedSession(credentials)
+
+    # Patch-Request ausführen
+    response = authed_session.patch(url, data=json.dumps(data), headers={"Content-Type": "application/json"})
+
+    # Status überprüfen und Antwort zurückgeben
+    if response.status_code == 200:
+        return f"Datenbank erfolgreich gestartet\n{response.text}"
+    else:
+        return f"Fehler beim Starten der Datenbank\nStatuscode: {response.status_code}\nAntwort: {response.text}"
+
+
+## Datenbank-Stopp
+    
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
+import json  
+
+def stop_sql_instance(request):
+   
+    project_id = "massive-cider-414718"  
+    instance_id = "pjs-gebrauchtwagen2"  
+    url = f"https://sqladmin.googleapis.com/v1/projects/{project_id}/instances/{instance_id}"
+
+
+    data = {
+        "settings": {
+            "activationPolicy": "NEVER"
+        }
+    }
+
+    credentials, project = google.auth.default()
+    authed_session = AuthorizedSession(credentials)
+
+
+    response = authed_session.patch(url, data=json.dumps(data), headers={"Content-Type": "application/json"})
+
+    
+    if response.status_code == 200:
+        return f"Datenbank erfolgreich gestoppt\n{response.text}"
+    else:
+        return f"Fehler beim stoppen der Datenbank\nStatuscode: {response.status_code}\nAntwort: {response.text}"
+
+
+
+##Requirements.txt:
+    
+functions-framework==3.*
+google-auth==1.35.0
+google-auth-httplib2==0.1.0
+google-auth-oauthlib==0.4.6
+requests==2.27.1
