@@ -1,0 +1,444 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import mysql
+import mysql.connector
+from mysql.connector import Error
+from datetime import datetime
+
+def scrape_and_save_car_data(request):
+
+    baseurl = "https://www.autoscout24.de/"
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+    }
+
+
+#baujahr, kraftstoff spezifisch; zweimal pro Baujahr scrapen
+#
+#
+
+    autolinks = []
+
+    for x in range(1,3):
+       r =requests.get(f'https://www.autoscout24.de/lst/porsche/panamera?atype=C&cy=D&damaged_listing=exclude&desc=0&fregfrom=2015&fregto=2018&ocs_listing=include&page={x}&powertype=kw&search_id=2crza4en21b&sort=price&source=listpage_pagination&ustate=N%2CU')
+       soup = BeautifulSoup(r.content, 'lxml')
+
+       autoliste = soup.find_all('div', class_='ListItem_header__J6xlG ListItem_header_new_design__Rvyv_')
+
+       for item in autoliste:
+              for link in item.find_all('a', href=True):
+                     autolinks.append(baseurl + link['href'])
+
+
+    autodetailliste = []
+
+    for link in autolinks:
+       
+       Datum = datetime.today().date()
+
+       for auto in autodetailliste:
+            auto['Datum'] = Datum
+
+       #testlink = 'https://www.autoscout24.de/angebote/volkswagen-golf-life-1-5-etsi-opf-dsg-elektro-benzin-blau-5df992d1-1919-44a6-bc35-3e117e2f0a28'
+
+       r = requests.get(link, headers=headers)
+
+       soup = BeautifulSoup(r.content, 'lxml')
+
+       try:
+              Marke = soup.find('span', class_='StageTitle_boldClassifiedInfo__sQb0l').text.strip()
+       except AttributeError:
+              Marke = 'kein Eintrag'
+
+       try:
+              Modell = soup.find('span', class_='StageTitle_model__EbfjC StageTitle_boldClassifiedInfo__sQb0l').text.strip()
+       except AttributeError:
+              Modell = 'kein Eintrag'
+
+       try:
+              Preis = soup.find('span', class_='PriceInfo_price__XU0aF').text.strip()
+       except AttributeError:
+              Preis = 'kein Eintrag'
+
+       try:
+              Standort = soup.find('a', class_='scr-link LocationWithPin_locationItem__tK1m5').text.strip()
+       except AttributeError:
+              Standort = 'kein Eintrag'
+
+
+       Kraftstoff = 'kein Eintrag'
+       try:
+            div_elements = soup.find_all('div', class_='VehicleOverview_itemText__AI4dA')
+            for div in div_elements:
+                    previous_div = div.find_previous_sibling('div', class_='VehicleOverview_itemTitle__S2_lb')
+                    if previous_div and "Kraftstoff" in previous_div.get_text():
+                           Kraftstoff = div.get_text().strip()
+                           break
+       except Exception as e:
+              print('Fehler aufgetreten:', e)
+         
+                            
+
+       dt_elements = soup.find_all('dt')
+
+       Karosserieform = 'kein Eintrag'
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Karosserieform" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Karosserieform = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+
+
+        
+
+       Fahrzeugart = 'kein Eintrag'
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Fahrzeugart" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Fahrzeugart = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Antriebsart = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Antriebsart" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Antriebsart = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+              
+              
+       Sitzplätze = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Sitzplätze" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Sitzplätze = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Türen = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Türen" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Türen = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Angebotsnummer = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Angebotsnummer" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Angebotsnummer = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Schlüsselnummer = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Schlüsselnummer" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Schlüsselnummer = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Kilometerstand = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Kilometerstand" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Kilometerstand = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Erstzulassung = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Erstzulassung" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Erstzulassung = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Baujahr = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Baujahr" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Baujahr = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       HU = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "HU" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   HU = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Fahrzeughalter = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Fahrzeughalter" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Fahrzeughalter = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Scheckheftgepflegt = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Scheckheftgepflegt" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Scheckheftgepflegt = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Nichtraucherfahrzeug = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Nichtraucherfahrzeug" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Nichtraucherfahrzeug = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Leistung = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Leistung" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Leistung = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Getriebe = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Getriebe" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Getriebe = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Hubraum = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Hubraum" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Hubraum = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Außenfarbe = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Außenfarbe" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Außenfarbe = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+              
+       Farbe_laut_Hersteller = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Farbee_laut_Hersteller" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Farbe_laut_Hersteller = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')      
+                     
+       Lackierung = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Lackierung" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Lackierung = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten') 
+
+       Farbe_der_Innenausstattung = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Farbe_der_Innenausstattung" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Farbe_der_Innenausstattung = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+       Innenausstattung = 'kein Eintrag'                     
+       try:
+              dt_elements = soup.find_all('dt')
+              for dt in dt_elements:
+                     if "Innenausstattung" in dt.get_text():
+                            dd = dt.find_next_sibling('dd')
+                            if dd:
+                                   Innenausstattung = dd.get_text().strip()
+                            break
+       except Exception as e:
+              print('Fehler aufgetreten')
+
+
+              # Finden Sie das `<a>`-Tag, das die Adresse enthält.
+       a_tag = soup.find('a', class_='scr-link Department_link__xMUEe')
+
+       if a_tag:
+       # Extrahieren Sie den gesamten Text innerhalb des `<a>`-Tags.
+              address_text = a_tag.get_text(separator=' ', strip=True)
+       
+              address_parts = address_text.split()
+       
+              Postleitzahl = next((part for part in address_parts if part.isdigit() and len(part) == 5), 'kein Eintrag')
+
+                
+        
+            
+
+
+
+
+       auto = {
+              'Marke': Marke,
+              'Modell': Modell,
+              'Preis': Preis,
+              'Standort': Standort,
+              'Kraftstoff': Kraftstoff,
+              'Karosserieform': Karosserieform,
+              'Antriebsart': Antriebsart,
+              'Fahrzeugart': Fahrzeugart,
+              'Sitzplätze': Sitzplätze,
+              'Türen': Türen,
+              'Angebotsnummer': Angebotsnummer,
+              'Schlüsselnummer': Schlüsselnummer,
+              'Kilometerstand': Kilometerstand,
+              'Erstzulassung': Erstzulassung,
+              'Baujahr': Baujahr,
+              'HU': HU,
+              'Fahrzeughalter': Fahrzeughalter,
+              'Scheckheftgepflegt': Scheckheftgepflegt,
+              'Nichtraucherfahrzeug': Nichtraucherfahrzeug,
+              'Leistung': Leistung,
+              'Getriebe': Getriebe,
+              'Hubraum': Hubraum,
+              'Außenfarbe': Außenfarbe,
+              'Farbe_laut_Hersteller': Farbe_laut_Hersteller,
+              'Lackierung': Lackierung,
+              'Farbe_der_Innenausstattung': Farbe_der_Innenausstattung,
+              'Innenausstattung': Innenausstattung,
+              #'Schlüssel': Kilometerstand + Standort + Modell + Leistung,
+              'Postleitzahl': Postleitzahl,
+              'Datum': Datum,
+               
+       }
+              #( Marke, Modell, Preis, Standort, Karosserieform, Fahrzeugart, Antriebsart) #Sitzplätze, Angebotsnummer, Schlüsselnummer, Kilometerstand, Erstzulassung, Baujahr, HU, Fahrzeughalter, Scheckheftgepflegt, Nichtraucherfahrzeug, Leistung, Getriebe, Hubraum, Außenfarbe, Farbe_laut_Hersteller, Lackierung, Farbe_der_Innenausstattung, Innenausstattung
+
+       autodetailliste.append(auto)
+
+
+    #print(autodetailliste)
+    df = pd.DataFrame(autodetailliste)
+    #print(df)
+    ##df.to_excel("C:\\Desktop\\Scraper\\test.xlsx")
+
+
+    try:
+        connection = mysql.connector.connect(
+            host="10.75.176.8",
+            user="root",
+            password="a+rvj6{>Jd{Q]}s3",
+            database="pjs_DB",
+        )
+       
+        if connection.is_connected():
+            cursor = connection.cursor()
+            query = """INSERT INTO TestLuis (Marke, Modell, Preis, Standort, Kraftstoff, Karosserieform, Antriebsart, Fahrzeugart, Sitzplätze, Türen, Angebotsnummer, Schlüsselnummer, Kilometerstand, Erstzulassung, Baujahr, HU, Fahrzeughalter, Scheckheftgepflegt, Nichtraucherfahrzeug, Leistung, Getriebe, Hubraum, Außenfarbe, Farbe_laut_Hersteller, Lackierung, Farbe_der_Innenausstattung, Innenausstattung, Postleitzahl, Datum) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        
+        for row in df.itertuples(index=False):
+            cursor.execute(query, row)
+        
+        connection.commit()
+    except Exception as e:
+        print("Fehler beim Verbinden zur MySQL-Datenbank", e)
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+    return ("hallo", 200)
+
+
